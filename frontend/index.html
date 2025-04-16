@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Management</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h2 class="text-center mb-4">Student Management</h2>
+
+      <form id="studentForm">
+        <input type="hidden" name="id" id="studentId" />
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <input
+              type="text"
+              class="form-control"
+              name="StudentName"
+              placeholder="Student Name"
+              required
+            />
+          </div>
+          <div class="col-md-3">
+            <input
+              type="text"
+              class="form-control"
+              name="Mobile"
+              placeholder="Mobile"
+              required
+            />
+          </div>
+          <div class="col-md-3">
+            <input
+              type="text"
+              class="form-control"
+              name="City"
+              placeholder="City"
+              required
+            />
+          </div>
+          <div class="col-md-2">
+            <input
+              type="file"
+              class="form-control"
+              name="Image"
+              accept="image/*"
+            />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-success" id="submitBtn">
+          Add Student
+        </button>
+        <button type="button" class="btn btn-secondary d-none" id="cancelBtn">
+          Cancel
+        </button>
+      </form>
+
+      <hr />
+
+      <table class="table table-bordered mt-4">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Name</th>
+            <th>Mobile</th>
+            <th>City</th>
+            <th>Operation</th>
+          </tr>
+        </thead>
+        <tbody id="studentTable"></tbody>
+      </table>
+    </div>
+
+    <script>
+      const API_URL = "http://localhost:5000/api/students";
+      const AUTH_TOKEN = "dayanada-sagar-college-of-engineering";
+      const randomNumber = Math.floor(Math.random() * 10000);
+      const studentTable = document.getElementById("studentTable");
+      const form = document.getElementById("studentForm");
+      const submitBtn = document.getElementById("submitBtn");
+      const cancelBtn = document.getElementById("cancelBtn");
+      const studentIdInput = document.getElementById("studentId");
+      //fetch students from the jason file
+      const loadStudents = async () => {
+        const res = await fetch(API_URL, {
+          headers: { Authorization: `${randomNumber} ${AUTH_TOKEN}` },
+        });
+        console.log(res);
+
+        const data = await res.json();
+        console.log(data);
+
+        studentTable.innerHTML = "";
+
+        //Adding the data to the table
+        data.forEach((student) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+          <td><img src="http://localhost:5000${student.Image}" width="60"/></td>
+          <td>${student.StudentName}</td>
+          <td>${student.Mobile}</td>
+          <td>${student.City}</td>
+          <td>
+            <button class="btn btn-sm btn-primary me-2" onclick='editStudent(${JSON.stringify(
+              student
+            )})'>Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteStudent('${
+              student.id
+            }')">Delete</button>
+          </td>
+        `;
+          studentTable.appendChild(row);
+        });
+      };
+
+      const resetForm = () => {
+        form.reset();
+        studentIdInput.value = "";
+        submitBtn.textContent = "Add Student";
+        cancelBtn.classList.add("d-none");
+      };
+
+      //form submission
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const id = studentIdInput.value;
+        const formData = new FormData(form);
+
+        if (id) {
+          const updatedData = {
+            StudentName: formData.get("StudentName"),
+            Mobile: formData.get("Mobile"),
+            City: formData.get("City"),
+          };
+
+          const res = await fetch(`${API_URL}/${id}`, {
+            method: "PUT",
+            headers: {
+              Authorization: `${randomNumber} ${AUTH_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updatedData),
+          });
+
+          if (res.ok) {
+            resetForm();
+            loadStudents();
+          } else {
+            alert("Error updating student.");
+          }
+        } else {
+          // Add new
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { Authorization: `${randomNumber} ${AUTH_TOKEN}` },
+            body: formData,
+          });
+
+          if (res.ok) {
+            form.reset();
+            loadStudents();
+          } else {
+            alert("Error adding student.");
+          }
+        }
+      });
+
+      const editStudent = (student) => {
+        form.StudentName.value = student.StudentName;
+        form.Mobile.value = student.Mobile;
+        form.City.value = student.City;
+        studentIdInput.value = student.id;
+        submitBtn.textContent = "Update Student";
+        cancelBtn.classList.remove("d-none");
+      };
+
+      cancelBtn.addEventListener("click", resetForm);
+
+      const deleteStudent = async (id) => {
+        if (confirm("Are you sure you want to delete this student?")) {
+          const res = await fetch(`${API_URL}/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `${randomNumber} ${AUTH_TOKEN}` },
+          });
+          if (res.ok) loadStudents();
+        }
+      };
+
+      loadStudents();
+    </script>
+  </body>
+</html>
